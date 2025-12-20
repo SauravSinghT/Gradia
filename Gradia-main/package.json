@@ -89,14 +89,5 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^7.2.7"
- 
-  },
-  
-  "name": "gradia-app",
-  "scripts": {
-    "install-client": "cd client && npm install",
-    "install-backend": "cd backend && npm install",
-    "install-all": "npm run install-client && npm run install-backend",
-    "build-client": "cd client && npm run build"
-}
+  }
 }
