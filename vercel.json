@@ -2,22 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "./backend/index.js",
+      "src": "./backend/server.js",
       "use": "@vercel/node"
     },
     {
-      "src": "./client/dist",
+      "src": "./Gradia-main/dist",
       "use": "@vercel/static"
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/backend/index.js"
+      "destination": "/backend/server.js"
     },
     {
       "source": "/(.*)",
-      "destination": "/client/dist/index.html"
+      "destination": "/Gradia-main/dist/index.html"
     }
   ]
 }

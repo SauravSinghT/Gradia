@@ -68,3 +68,4 @@ app.listen(PORT, () => {
   console.log(`API Base URL: http://localhost:${PORT}/api`);
   console.log(`Frontend URL: http://localhost:8080 or http://localhost:5173`);
 });
+module.exports = app;
