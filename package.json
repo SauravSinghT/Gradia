@@ -1,0 +1,23 @@
+{
+  "name": "gradia",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SauravSinghT/Gradia.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SauravSinghT/Gradia/issues"
+  },
+  "homepage": "https://github.com/SauravSinghT/Gradia#readme",
+  "description": "",
+  "scripts": {
+  "build": "cd Gradia-main && npm install && npm run build"
+}
+}
