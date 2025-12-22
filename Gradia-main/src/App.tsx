@@ -16,6 +16,7 @@ import Flashcards from "./pages/Flashcards";
 import Tests from "./pages/Tests";
 import Assessment from "./pages/Assessment";
 import CareerRoadmap from "./pages/CareerRoadmap";
+import TaskDetailPage from "./pages/TaskDetailPage";
 import DailyTasks from "./pages/DailyTasks";
 import Modules from "./pages/Modules";
 import CareerAnalytics from "./pages/CareerAnalytics";
@@ -38,7 +39,7 @@ const App = () => (
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
-            
+            <Route path="/dashboard/roadmap/task/:taskId" element={<TaskDetailPage />} />
             <Route path="study-sets" element={<StudySets />} />
             <Route path="priority" element={<PriorityTopics />} />
             <Route path="summaries" element={<Summaries />} />

@@ -8,6 +8,7 @@ const historyRoutes = require('./routes/historyRoutes');
 const studySetRoutes = require('./routes/studySetRoutes');
 const app = express();
 const priorityTopicsRoutes = require('./routes/priorityTopicsRoutes');
+const roadmapRoutes = require('./routes/roadmapRoutes');
 
 
 // Connect to Database
@@ -31,6 +32,7 @@ app.use(cors(corsOptions));
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/roadmaps', roadmapRoutes);
 
 // Routes
 app.use('/api/auth', authRoutes);

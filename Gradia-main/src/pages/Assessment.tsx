@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   BarChart3,
   ClipboardCheck,
@@ -10,34 +11,140 @@ import {
   TrendingDown,
   Target,
   RefreshCw,
+  Loader2,
+  Minus,
+  ArrowRight,
+  Brain
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  ScatterChart,
+  Scatter,
+  ZAxis
+} from "recharts";
+
+// --- TYPES ---
+interface QuizAttempt {
+  _id: string;
+  title: string;
+  description: string;
+  metadata?: {
+    score: number;
+    questionCount: number;
+    correctAnswers: number;
+  };
+  createdAt: string;
+}
 
 interface TopicPerformance {
   topic: string;
-  score: number;
+  score: number; // Average Score
   questionsAttempted: number;
+  attempts: number;
+  lastScore: number;
   trend: "up" | "down" | "stable";
 }
 
 const Assessment = () => {
+  const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
   const [performanceData, setPerformanceData] = useState<TopicPerformance[]>([]);
+  const [rawHistory, setRawHistory] = useState<QuizAttempt[]>([]);
   const { toast } = useToast();
 
-  const generateSampleData = () => {
-    const sampleData: TopicPerformance[] = [
-      { topic: "Data Structures", score: 85, questionsAttempted: 24, trend: "up" },
-      { topic: "Object-Oriented Programming", score: 72, questionsAttempted: 18, trend: "stable" },
-      { topic: "Database Management", score: 45, questionsAttempted: 12, trend: "down" },
-      { topic: "Algorithms", score: 68, questionsAttempted: 20, trend: "up" },
-      { topic: "Operating Systems", score: 55, questionsAttempted: 15, trend: "stable" },
-      { topic: "Computer Networks", score: 38, questionsAttempted: 10, trend: "down" },
-    ];
-    setPerformanceData(sampleData);
-    setHasData(true);
-    toast({ title: "Assessment Data Loaded", description: "Showing your performance analytics." });
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data } = await axios.get("http://localhost:5000/api/history?historyType=quizAttempt&limit=100", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (data.data && data.data.length > 0) {
+        setRawHistory(data.data);
+        processAnalytics(data.data);
+        setHasData(true);
+      } else {
+        setHasData(false);
+      }
+    } catch (error) {
+      console.error("Failed to load assessment history", error);
+      toast({ title: "Error", description: "Could not load analytics", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processAnalytics = (history: QuizAttempt[]) => {
+    const topicMap: Record<string, { 
+      totalScore: number; 
+      count: number; 
+      totalQuestions: number; 
+      scores: number[]; // To calculate trend
+    }> = {};
+
+    // 1. Group by Topic
+    history.forEach(item => {
+      // Extract topic from title or description if not explicit
+      // Assuming title format like "React Basics" or from description
+      const topicName = item.title.split('-')[0].trim() || "General"; 
+      const score = item.metadata?.score || 0;
+      const questions = item.metadata?.questionCount || 0;
+
+      if (!topicMap[topicName]) {
+        topicMap[topicName] = { totalScore: 0, count: 0, totalQuestions: 0, scores: [] };
+      }
+
+      topicMap[topicName].totalScore += score;
+      topicMap[topicName].count += 1;
+      topicMap[topicName].totalQuestions += questions;
+      topicMap[topicName].scores.push(score);
+    });
+
+    // 2. Calculate Stats & Trends
+    const processed: TopicPerformance[] = Object.keys(topicMap).map(topic => {
+      const data = topicMap[topic];
+      const avgScore = Math.round(data.totalScore / data.count);
+      
+      // Calculate Trend: Compare avg of last half vs first half of attempts
+      // (Simple logic: if last attempt > average => up)
+      const lastScore = data.scores[0]; // Since API returns sorted by newest first usually
+      let trend: "up" | "down" | "stable" = "stable";
+      
+      if (data.scores.length > 1) {
+        if (lastScore > avgScore + 5) trend = "up";
+        else if (lastScore < avgScore - 5) trend = "down";
+      }
+
+      return {
+        topic,
+        score: avgScore,
+        questionsAttempted: data.totalQuestions,
+        attempts: data.count,
+        lastScore,
+        trend
+      };
+    });
+
+    setPerformanceData(processed.sort((a, b) => b.score - a.score));
   };
 
   const strongTopics = performanceData.filter((t) => t.score >= 70);
@@ -48,225 +155,185 @@ const Assessment = () => {
 
   const getTrendIcon = (trend: "up" | "down" | "stable") => {
     switch (trend) {
-      case "up":
-        return <TrendingUp className="w-4 h-4 text-success-soft" />;
-      case "down":
-        return <TrendingDown className="w-4 h-4 text-destructive" />;
-      default:
-        return <Target className="w-4 h-4 text-muted-foreground" />;
+      case "up": return <TrendingUp className="w-4 h-4 text-green-500" />;
+      case "down": return <TrendingDown className="w-4 h-4 text-red-500" />;
+      default: return <Minus className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-success-soft";
-    if (score >= 60) return "text-accent";
-    return "text-destructive";
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    return "text-red-500";
   };
+
+  // --- CHART DATA PREP ---
+  const barChartData = performanceData.map(p => ({
+    name: p.topic.substring(0, 12) + (p.topic.length > 12 ? '...' : ''),
+    fullName: p.topic,
+    score: p.score
+  }));
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!hasData) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-8"
-      >
-        {/* Header */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
         <div>
-          <h1 className="text-3xl font-sora font-bold mb-2">
-            <span className="gradient-text">Assessment Analytics</span>
-          </h1>
-          <p className="text-muted-foreground">
-            Track your quiz performance and identify areas for improvement
-          </p>
+          <h1 className="text-3xl font-sora font-bold mb-2"><span className="gradient-text">Assessment Analytics</span></h1>
+          <p className="text-muted-foreground">Track your quiz performance and identify areas for improvement</p>
         </div>
-
-        {/* Empty State */}
         <Card variant="glass" className="p-12 text-center">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-cyan-soft flex items-center justify-center mx-auto mb-6">
             <BarChart3 className="w-10 h-10 text-primary-foreground" />
           </div>
           <h3 className="text-xl font-sora font-semibold mb-3">No assessment data yet</h3>
           <p className="text-muted-foreground max-w-md mx-auto mb-8">
-            Complete quizzes and tests to see your performance analytics, including strong topics and areas needing improvement
+            Complete quizzes and tests to see your performance analytics here.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/dashboard/tests">
               <Button variant="hero">
-                <ClipboardCheck className="w-4 h-4 mr-2" />
-                Take a Quiz
+                <ClipboardCheck className="w-4 h-4 mr-2" /> Take a Quiz
               </Button>
             </Link>
-            <Button variant="outline" onClick={generateSampleData}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Load Sample Data
-            </Button>
           </div>
         </Card>
-
-        {/* What you'll see */}
-        <div className="grid sm:grid-cols-2 gap-6">
-          <Card variant="feature">
-            <CardContent className="p-6">
-              <h3 className="font-sora font-semibold mb-4 text-success-soft">Strong Topics</h3>
-              <p className="text-sm text-muted-foreground">
-                Topics where you consistently score above 70% will appear here
-              </p>
-            </CardContent>
-          </Card>
-          <Card variant="feature">
-            <CardContent className="p-6">
-              <h3 className="font-sora font-semibold mb-4 text-destructive">Needs Improvement</h3>
-              <p className="text-sm text-muted-foreground">
-                Topics where you score below 60% will be highlighted for focused study
-              </p>
-            </CardContent>
-          </Card>
-        </div>
       </motion.div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-8"
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-sora font-bold mb-2">
-            <span className="gradient-text">Assessment Analytics</span>
-          </h1>
+          <h1 className="text-3xl font-sora font-bold mb-2"><span className="gradient-text">Assessment Analytics</span></h1>
           <p className="text-muted-foreground">
-            Overall Average: <span className={`font-semibold ${getScoreColor(averageScore)}`}>{averageScore}%</span>
+            Overall Average: <span className={`font-bold text-lg ${getScoreColor(averageScore)}`}>{averageScore}%</span>
           </p>
         </div>
         <div className="flex gap-3">
           <Link to="/dashboard/tests">
-            <Button variant="hero">
-              <ClipboardCheck className="w-4 h-4 mr-2" />
-              Take More Quizzes
-            </Button>
+            <Button variant="hero"><ClipboardCheck className="w-4 h-4 mr-2" /> Take Quiz</Button>
           </Link>
-          <Button variant="outline" onClick={() => setHasData(false)}>
-            Reset
+          <Button variant="outline" onClick={fetchHistory} title="Refresh Data">
+            <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* KPI Cards */}
       <div className="grid sm:grid-cols-3 gap-6">
         <Card variant="glow">
           <CardContent className="p-6 text-center">
             <p className="text-4xl font-bold gradient-text mb-2">{averageScore}%</p>
-            <p className="text-sm text-muted-foreground">Average Score</p>
+            <p className="text-sm text-muted-foreground">Global Average</p>
           </CardContent>
         </Card>
-        <Card variant="feature" className="border-success/30">
+        <Card variant="feature" className="border-green-500/20 bg-green-500/5">
           <CardContent className="p-6 text-center">
-            <p className="text-4xl font-bold text-success-soft mb-2">{strongTopics.length}</p>
-            <p className="text-sm text-muted-foreground">Strong Topics</p>
+            <p className="text-4xl font-bold text-green-600 mb-2">{strongTopics.length}</p>
+            <p className="text-sm text-muted-foreground">Strong Topics (70%+)</p>
           </CardContent>
         </Card>
-        <Card variant="feature" className="border-destructive/30">
+        <Card variant="feature" className="border-red-500/20 bg-red-500/5">
           <CardContent className="p-6 text-center">
-            <p className="text-4xl font-bold text-destructive mb-2">{weakTopics.length}</p>
-            <p className="text-sm text-muted-foreground">Need Improvement</p>
+            <p className="text-4xl font-bold text-red-600 mb-2">{weakTopics.length}</p>
+            <p className="text-sm text-muted-foreground">Needs Focus (&lt;60%)</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* All Topics Performance */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <BarChart3 className="w-5 h-5 text-primary" />
-            Topic-wise Performance
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {performanceData.map((topic, index) => (
-            <motion.div
-              key={topic.topic}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{topic.topic}</span>
-                  {getTrendIcon(topic.trend)}
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">
-                    {topic.questionsAttempted} questions
-                  </span>
-                  <span className={`font-semibold ${getScoreColor(topic.score)}`}>
-                    {topic.score}%
-                  </span>
-                </div>
-              </div>
-              <Progress 
-                value={topic.score} 
-                className={`h-2 ${
-                  topic.score >= 80 
-                    ? "[&>div]:bg-success" 
-                    : topic.score >= 60 
-                    ? "[&>div]:bg-accent" 
-                    : "[&>div]:bg-destructive"
-                }`} 
-              />
-            </motion.div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Strong & Weak Topics */}
-      <div className="grid sm:grid-cols-2 gap-6">
-        <Card variant="feature" className="border-success/20">
-          <CardHeader>
-            <CardTitle className="text-lg text-success-soft flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Strong Topics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {strongTopics.length > 0 ? (
-              strongTopics.map((topic) => (
-                <div key={topic.topic} className="flex items-center justify-between p-3 rounded-lg bg-success/5">
-                  <span>{topic.topic}</span>
-                  <span className="font-semibold text-success-soft">{topic.score}%</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-sm">Keep practicing to build strong topics!</p>
-            )}
-          </CardContent>
+      {/* CHARTS SECTION */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        
+        {/* 1. Topic Performance Bar Chart */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Score by Topic</CardTitle>
+                <CardDescription>Average performance across different subjects</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barChartData} layout="vertical" margin={{ left: 0, right: 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.3} />
+                        <XAxis type="number" domain={[0, 100]} hide />
+                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                        <Tooltip 
+                            cursor={{ fill: 'transparent' }}
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        />
+                        <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={20}>
+                            {barChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.score >= 70 ? '#22c55e' : entry.score >= 50 ? '#eab308' : '#ef4444'} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </CardContent>
         </Card>
 
-        <Card variant="feature" className="border-destructive/20">
-          <CardHeader>
-            <CardTitle className="text-lg text-destructive flex items-center gap-2">
-              <TrendingDown className="w-5 h-5" />
-              Needs Improvement
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {weakTopics.length > 0 ? (
-              weakTopics.map((topic) => (
-                <div key={topic.topic} className="flex items-center justify-between p-3 rounded-lg bg-destructive/5">
-                  <span>{topic.topic}</span>
-                  <span className="font-semibold text-destructive">{topic.score}%</span>
+        {/* 2. Detailed Metrics List */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Detailed Metrics</CardTitle>
+                <CardDescription>Breakdown by questions attempted and trends</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-6">
+                    {performanceData.slice(0, 5).map((topic, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-sm">{topic.topic}</span>
+                                    {getTrendIcon(topic.trend)}
+                                </div>
+                                <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full ${topic.score >= 70 ? 'bg-green-500' : topic.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} 
+                                        style={{ width: `${topic.score}%` }} 
+                                    />
+                                </div>
+                            </div>
+                            <div className="text-right pl-4">
+                                <span className="block font-bold text-sm">{topic.score}%</span>
+                                <span className="text-xs text-muted-foreground">{topic.questionsAttempted} Qs</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-sm">Great job! No weak areas detected.</p>
-            )}
-          </CardContent>
+            </CardContent>
         </Card>
       </div>
+
+      {/* Recommendation Section */}
+      {weakTopics.length > 0 && (
+        <Card variant="glass" className="border-l-4 border-l-red-500">
+            <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div>
+                    <h3 className="text-lg font-bold flex items-center gap-2 text-foreground mb-1">
+                        <Target className="w-5 h-5 text-red-500" /> Focus Recommendation
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                        You should review <strong>{weakTopics[0].topic}</strong> based on your recent performance ({weakTopics[0].score}%).
+                    </p>
+                </div>
+                <Link to="/dashboard/study-sets">
+                    <Button variant="outline" className="shrink-0">
+                        Generate Study Material <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                </Link>
+            </CardContent>
+        </Card>
+      )}
+
     </motion.div>
   );
 };
