@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+
 import {
   GraduationCap,
   Mail,
@@ -15,6 +16,9 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// 1. IMPORT CONFIG
+import API_BASE_URL from "@/config";
 
 const benefits = [
   "AI-powered exam preparation",
@@ -37,11 +41,12 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-  const response = await fetch('/api/auth/signup', { 
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password }),
-  });
+      // 2. FIX: Use the full backend URL
+      const response = await fetch(`${API_BASE_URL}/auth/signup`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
       const data = await response.json();
 
@@ -54,7 +59,6 @@ const Signup = () => {
         description: "Welcome to Gradia. Please login to continue.",
       });
       
-      // Redirect to login page
       navigate("/login");
 
     } catch (error: any) {
@@ -157,7 +161,7 @@ const Signup = () => {
 
             <Button
               type="submit"
-              variant="default" // Changed to default if 'hero' variant isn't defined
+              variant="default"
               size="lg"
               className="w-full"
               disabled={isLoading}

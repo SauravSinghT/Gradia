@@ -7,6 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { GraduationCap, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// 1. IMPORT CONFIG
+import API_BASE_URL from "@/config";
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,10 +23,11 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', { 
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+      // 2. FIX: Use the full backend URL
+      const response = await fetch(`${API_BASE_URL}/auth/login`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -182,7 +186,7 @@ const Login = () => {
 
             <Button
               type="submit"
-              variant="default" // Changed to default
+              variant="default"
               size="lg"
               className="w-full"
               disabled={isLoading}
