@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import API_BASE_URL from "@/config";
 import {
   BarChart3,
   ClipboardCheck,
@@ -28,10 +29,6 @@ import {
   ResponsiveContainer,
   Cell
 } from "recharts";
-
-// 1. IMPORT YOUR CONFIG
-import API_BASE_URL from "@/config";
-
 // --- TYPES ---
 interface QuizAttempt {
   _id: string;

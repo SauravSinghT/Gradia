@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { 
   BookOpen, 
-  BrainCircuit, 
-  FileText, 
   TrendingUp, 
   Activity,
   Loader2
@@ -14,7 +12,6 @@ import {
   AreaChart,
   Area,
   XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
@@ -22,9 +19,11 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar,
-  Legend
+  Radar
 } from "recharts";
+
+// 1. IMPORT CONFIG
+import API_BASE_URL from "@/config";
 
 // --- TYPES ---
 interface HistoryItem {
@@ -63,8 +62,8 @@ const AcademicChart = () => {
     }
 
     try {
-      // Fetch all history types
-      const { data } = await axios.get("http://localhost:5000/api/history?limit=100", {
+      // 2. FIX: Use API_BASE_URL
+      const { data } = await axios.get(`${API_BASE_URL}/history?limit=100`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -77,12 +76,11 @@ const AcademicChart = () => {
   };
 
   const processData = (items: HistoryItem[]) => {
-    let sCount = 0; // Summaries
-    let fCount = 0; // Flashcards
-    let qCount = 0; // Quiz Attempts
+    let sCount = 0; 
+    let fCount = 0; 
+    let qCount = 0; 
     let totalScore = 0;
 
-    // 1. Process Totals
     items.forEach(item => {
       if (item.historyType === 'summary') sCount++;
       if (item.historyType === 'flashcard') fCount++;
@@ -92,7 +90,6 @@ const AcademicChart = () => {
       }
     });
 
-    // 2. Process Activity Over Time (Last 7 Days)
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const today = new Date();
     const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -115,12 +112,10 @@ const AcademicChart = () => {
 
     setActivityData(last7Days);
 
-    // 3. Process Radar Data (Normalized to 100 for balance visualization)
-    // We normalize to show relative effort in each area
     const totalActions = sCount + fCount + qCount || 1;
     
     setRadarData([
-      { subject: "Reading", A: Math.min((sCount / totalActions) * 100 * 3, 100), fullMark: 100 }, // Multiplier to make chart look fuller
+      { subject: "Reading", A: Math.min((sCount / totalActions) * 100 * 3, 100), fullMark: 100 },
       { subject: "Testing", A: Math.min((qCount / totalActions) * 100 * 3, 100), fullMark: 100 },
       { subject: "Recall", A: Math.min((fCount / totalActions) * 100 * 3, 100), fullMark: 100 },
       { subject: "Consistency", A: Math.min(items.length > 5 ? 80 : items.length * 10, 100), fullMark: 100 },
@@ -175,8 +170,6 @@ const AcademicChart = () => {
       </CardHeader>
 
       <CardContent className="px-0 sm:px-6 space-y-6">
-        
-        {/* 1. KPI CARDS ROW */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4">
           <div className="bg-secondary/20 rounded-xl p-3 border border-border/50 text-center">
             <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Summaries</p>
@@ -194,7 +187,6 @@ const AcademicChart = () => {
           </div>
         </div>
 
-        {/* 2. AREA CHART: STUDY ACTIVITY */}
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <TrendingUp className="w-4 h-4" /> Study Momentum (7 Days)
@@ -230,28 +222,34 @@ const AcademicChart = () => {
           </div>
         </div>
 
-        {/* 3. RADAR CHART: BALANCE */}
         <div className="grid grid-cols-1 gap-4">
           <div className="flex flex-col items-center bg-secondary/10 rounded-xl p-2 border border-border/50 relative">
              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider absolute top-4 left-4">
                Skill Balance
              </h4>
              <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                  <PolarGrid stroke="#e5e7eb" strokeDasharray="3 3" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#6b7280' }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar
-                    name="Mastery"
-                    dataKey="A"
-                    stroke="#8b5cf6"
-                    fill="#8b5cf6"
-                    fillOpacity={0.4}
-                  />
-                  <Tooltip />
-                </RadarChart>
-              </ResponsiveContainer>
+              {/* Check to prevent SVG error if data is empty */}
+              {radarData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                    <PolarGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#6b7280' }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                    <Radar
+                      name="Mastery"
+                      dataKey="A"
+                      stroke="#8b5cf6"
+                      fill="#8b5cf6"
+                      fillOpacity={0.4}
+                    />
+                    <Tooltip />
+                  </RadarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground text-xs">
+                  Not enough data to generate chart
+                </div>
+              )}
              </div>
           </div>
         </div>
