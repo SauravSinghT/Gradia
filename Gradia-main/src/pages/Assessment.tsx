@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import API_BASE_URL from "@/config";
 import {
   BarChart3,
   ClipboardCheck,
@@ -29,6 +29,9 @@ import {
   Cell
 } from "recharts";
 
+// 1. IMPORT YOUR CONFIG
+import API_BASE_URL from "@/config";
+
 // --- TYPES ---
 interface QuizAttempt {
   _id: string;
@@ -51,7 +54,7 @@ interface TopicPerformance {
   trend: "up" | "down" | "stable";
 }
 
-// --- HELPER FUNCTIONS (Moved Outside Component to fix ReferenceError) ---
+// --- HELPER FUNCTIONS ---
 const getTrendIcon = (trend: "up" | "down" | "stable") => {
   switch (trend) {
     case "up": return <TrendingUp className="w-4 h-4 text-green-500" />;
@@ -86,8 +89,8 @@ const Assessment = () => {
     }
 
     try {
-      // Ensure your backend URL is correct here (e.g. localhost:5000 or your render URL)
-      const { data } = await axios.get("http://localhost:5000/api/history?historyType=quizAttempt&limit=100", {
+      // 2. FIX: Use API_BASE_URL instead of localhost
+      const { data } = await axios.get(`${API_BASE_URL}/history?historyType=quizAttempt&limit=100`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -100,7 +103,10 @@ const Assessment = () => {
       }
     } catch (error) {
       console.error("Failed to load assessment history", error);
-      toast({ title: "Error", description: "Could not load analytics", variant: "destructive" });
+      // Don't show toast on 404 (just means no data yet)
+      if (axios.isAxiosError(error) && error.response?.status !== 404) {
+         toast({ title: "Error", description: "Could not load analytics", variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
