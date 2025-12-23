@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import API_BASE_URL from "@/config";
 import {
   ListTodo,
   BrainCircuit,
@@ -29,7 +30,7 @@ import { format } from "date-fns";
 
 // --- CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
-const API_URL = "http://localhost:5000/api/roadmaps";
+const API_URL = `${API_BASE_URL}/roadmaps`;
 
 // --- TYPES ---
 interface QuizQuestion {

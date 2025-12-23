@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import API_BASE_URL from "@/config";
 import {
   Rocket,
   Clock,
@@ -33,7 +34,7 @@ import CareerChatbot from "@/components/CareerChatbot"; // Import the Chatbot
 
 // --- CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
-const API_URL = "http://localhost:5000/api/roadmaps";
+const API_URL = `${API_BASE_URL}/roadmaps`;
 
 const careerOptions = [
   { id: "web", title: "Web Developer", duration: "3 weeks" },

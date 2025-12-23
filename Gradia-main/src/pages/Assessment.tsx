@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import API_BASE_URL from "@/config";
 import {
   BarChart3,
   ClipboardCheck,
@@ -13,8 +13,7 @@ import {
   RefreshCw,
   Loader2,
   Minus,
-  ArrowRight,
-  Brain
+  ArrowRight
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -27,10 +26,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
-  ScatterChart,
-  Scatter,
-  ZAxis
+  Cell
 } from "recharts";
 
 // --- TYPES ---
@@ -55,10 +51,26 @@ interface TopicPerformance {
   trend: "up" | "down" | "stable";
 }
 
+// --- HELPER FUNCTIONS (Moved Outside Component to fix ReferenceError) ---
+const getTrendIcon = (trend: "up" | "down" | "stable") => {
+  switch (trend) {
+    case "up": return <TrendingUp className="w-4 h-4 text-green-500" />;
+    case "down": return <TrendingDown className="w-4 h-4 text-red-500" />;
+    default: return <Minus className="w-4 h-4 text-muted-foreground" />;
+  }
+};
+
+const getScoreColor = (score: number) => {
+  if (score >= 80) return "text-green-500";
+  if (score >= 60) return "text-yellow-500";
+  return "text-red-500";
+};
+
 const Assessment = () => {
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
   const [performanceData, setPerformanceData] = useState<TopicPerformance[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [rawHistory, setRawHistory] = useState<QuizAttempt[]>([]);
   const { toast } = useToast();
 
@@ -74,6 +86,7 @@ const Assessment = () => {
     }
 
     try {
+      // Ensure your backend URL is correct here (e.g. localhost:5000 or your render URL)
       const { data } = await axios.get("http://localhost:5000/api/history?historyType=quizAttempt&limit=100", {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -98,14 +111,12 @@ const Assessment = () => {
       totalScore: number; 
       count: number; 
       totalQuestions: number; 
-      scores: number[]; // To calculate trend
+      scores: number[]; 
     }> = {};
 
-    // 1. Group by Topic
     history.forEach(item => {
-      // Extract topic from title or description if not explicit
-      // Assuming title format like "React Basics" or from description
-      const topicName = item.title.split('-')[0].trim() || "General"; 
+      // Fallback topic name if title is missing
+      const topicName = item.title ? item.title.split('-')[0].trim() : "General"; 
       const score = item.metadata?.score || 0;
       const questions = item.metadata?.questionCount || 0;
 
@@ -119,14 +130,11 @@ const Assessment = () => {
       topicMap[topicName].scores.push(score);
     });
 
-    // 2. Calculate Stats & Trends
     const processed: TopicPerformance[] = Object.keys(topicMap).map(topic => {
       const data = topicMap[topic];
       const avgScore = Math.round(data.totalScore / data.count);
       
-      // Calculate Trend: Compare avg of last half vs first half of attempts
-      // (Simple logic: if last attempt > average => up)
-      const lastScore = data.scores[0]; // Since API returns sorted by newest first usually
+      const lastScore = data.scores[0]; 
       let trend: "up" | "down" | "stable" = "stable";
       
       if (data.scores.length > 1) {
@@ -147,32 +155,21 @@ const Assessment = () => {
     setPerformanceData(processed.sort((a, b) => b.score - a.score));
   };
 
+  // Derived Stats
   const strongTopics = performanceData.filter((t) => t.score >= 70);
   const weakTopics = performanceData.filter((t) => t.score < 60);
   const averageScore = performanceData.length > 0 
     ? Math.round(performanceData.reduce((acc, t) => acc + t.score, 0) / performanceData.length)
     : 0;
 
-  const getTrendIcon = (trend: "up" | "down" | "stable") => {
-    switch (trend) {
-      case "up": return <TrendingUp className="w-4 h-4 text-green-500" />;
-      case "down": return <TrendingDown className="w-4 h-4 text-red-500" />;
-      default: return <Minus className="w-4 h-4 text-muted-foreground" />;
-    }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    return "text-red-500";
-  };
-
-  // --- CHART DATA PREP ---
+  // Chart Data
   const barChartData = performanceData.map(p => ({
-    name: p.topic.substring(0, 12) + (p.topic.length > 12 ? '...' : ''),
+    name: p.topic.length > 12 ? p.topic.substring(0, 12) + '...' : p.topic,
     fullName: p.topic,
     score: p.score
   }));
+
+  // --- RENDERING ---
 
   if (loading) {
     return (
