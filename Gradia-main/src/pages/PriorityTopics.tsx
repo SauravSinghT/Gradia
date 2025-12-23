@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
+import API_BASE_URL from "@/config";
 import {
   Target,
   Sparkles,
@@ -37,7 +37,7 @@ import axios from "axios";
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.mjs";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 // --- Types ---
 interface PriorityTopic {

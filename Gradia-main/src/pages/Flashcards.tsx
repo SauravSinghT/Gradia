@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import API_BASE_URL from "@/config";
 import {
   Layers,
   Plus,
@@ -22,7 +23,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // --- CONFIGURATION ---
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_BASE_URL = "/api";
+// const API_BASE_URL = "/api";
 
 interface Flashcard {
   id: string;

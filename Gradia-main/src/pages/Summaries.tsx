@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import API_BASE_URL from "@/config";
 import {
   FileText,
   Sparkles,
@@ -30,7 +31,7 @@ import jsPDF from "jspdf";
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_BASE_URL = "/api";
+// const API_BASE_URL = "/api";
 interface Topic {
   name: string;
   explanation: string;

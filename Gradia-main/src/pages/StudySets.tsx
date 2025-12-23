@@ -49,7 +49,7 @@ import MaterialUploader, { UploadedFile } from "@/components/MaterialUploader";
 // CONFIGURATION
 // ========================================
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+// const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 // ========================================
 // TYPES & INTERFACES
@@ -188,7 +188,7 @@ const StudySets = () => {
 
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/studysets`, {
+      const response = await axios.get(`${API_BASE_URL}/studysets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data.success) {
@@ -219,7 +219,7 @@ const StudySets = () => {
 
     try {
       const response = await axios.post(
-        `${API_URL}/studysets`,
+        `${API_BASE_URL}/studysets`,
         { title: newSetName },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -244,7 +244,7 @@ const StudySets = () => {
     if (!token) return;
 
     try {
-      await axios.delete(`${API_URL}/studysets/${id}`, {
+      await axios.delete(`${API_BASE_URL}/studysets/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setStudySets((prev) => prev.filter((set) => set._id !== id));
@@ -266,7 +266,7 @@ const StudySets = () => {
     if (!token) return;
 
     try {
-      const response = await axios.delete(`${API_URL}/studysets/${selectedSetId}/files/${fileId}`, {
+      const response = await axios.delete(`${API_BASE_URL}/studysets/${selectedSetId}/files/${fileId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -312,7 +312,7 @@ const StudySets = () => {
             
             // 2. Add to Set in Backend
             await axios.post(
-                `${API_URL}/studysets/${selectedSetId}/files`,
+                `${API_BASE_URL}/studysets/${selectedSetId}/files`,
                 {
                   fileName: f.name,
                   fileType: f.type,
